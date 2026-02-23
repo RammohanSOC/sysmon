@@ -1,0 +1,11 @@
+<Sysmon schemaversion="4.50">
+  <EventFiltering>
+    <!-- Event ID 23: File Delete archived (Recommended for Ransomware detection) -->
+    <RuleGroup name="" groupRelation="or">
+      <FileDelete onmatch="include">
+        <TargetFilename condition="contains">C:\Users</TargetFilename>
+        <TargetFilename condition="contains">C:\Data</TargetFilename>
+      </FileDelete>
+    </RuleGroup>
+  </EventFiltering>
+</Sysmon>
