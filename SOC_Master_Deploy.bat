@@ -12,7 +12,7 @@ if %errorLevel% neq 0 (
 )
 
 :: 2. CONFIGURATION
-set "WAZUH_MANAGER=4.150.203.68"
+set "WAZUH_MANAGER=4.150.203.68"  
 set "SYSMON_XML_URL=https://raw.githubusercontent.com/RammohanSOC/sysmon/refs/heads/main/master-sysmonconfig.xml"
 set "WORK_DIR=C:\Windows\Temp\SOC_Setup"
 
