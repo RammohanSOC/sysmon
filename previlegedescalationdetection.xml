@@ -1,0 +1,12 @@
+<Sysmon schemaversion="4.81">
+  <EventFiltering>
+    <ProcessCreate onmatch="include">
+      <ParentImage condition="image">PSEXESVC.exe</ParentImage>
+      <Image condition="image">powershell.exe</Image>
+      <Image condition="image">cmd.exe</Image>
+    </ProcessCreate>
+    <RegistryEvent onmatch="include">
+      <TargetObject condition="contains">Services\PSEXESVC</TargetObject>
+    </RegistryEvent>
+  </EventFiltering>
+</Sysmon>
