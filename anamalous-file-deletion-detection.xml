@@ -1,23 +1,10 @@
-<Sysmon schemaversion="4.30">
+<Sysmon schemaversion="4.50">
   <EventFiltering>
-    <RuleGroup name="Anomalous File Deletion" groupRelation="or">
+    <!-- Event ID 23: File Delete -->
+    <RuleGroup name="FileDeletionDetection" groupRelation="or">
       <FileDelete onmatch="include">
-        <!-- Detect deletion of documents, backups, and scripts -->
-        <TargetFilename condition="contains">.docx</TargetFilename>
-        <TargetFilename condition="contains">.xlsx</TargetFilename>
-        <TargetFilename condition="contains">.pdf</TargetFilename>
-        <TargetFilename condition="contains">.sql</TargetFilename>
-        <TargetFilename condition="contains">.zip</TargetFilename>
-        <TargetFilename condition="contains">.sh</TargetFilename>
-        <TargetFilename condition="contains">.ps1</TargetFilename>
-        <!-- Monitor deletions in sensitive directories -->
-        <TargetFilename condition="begin with">C:\Users\</TargetFilename>
-        <TargetFilename condition="begin with">C:\Windows\System32\Drivers\etc\</TargetFilename>
-      </FileDelete>
-      <FileDelete onmatch="exclude">
-        <!-- Exclude browser cache to reduce noise -->
-        <Image condition="contains">chrome.exe</Image>
-        <Image condition="contains">msedge.exe</Image>
+        <TargetFilename condition="contains">C:\Users</TargetFilename>
+        <TargetFilename condition="contains">C:\Sensitive\Data</TargetFilename>
       </FileDelete>
     </RuleGroup>
   </EventFiltering>
