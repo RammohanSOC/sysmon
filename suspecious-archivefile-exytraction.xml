@@ -1,0 +1,24 @@
+<Sysmon schemaversion="4.30">
+<EventFiltering>
+<!-- Event ID 1: Process Creation (Watch for extraction tools) -->
+<RuleGroup name="Archive Tools" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <Image condition="end with">7z.exe</Image>
+    <Image condition="end with">winrar.exe</Image>
+    <Image condition="end with">winzip.exe</Image>
+    <Image condition="end with">expand.exe</Image>
+    <Image condition="end with">tar.exe</Image>
+    <CommandLine condition="contains">Expand-Archive</CommandLine>
+  </ProcessCreate>
+</RuleGroup>
+
+<!-- Event ID 11: File Create (Watch for executables dropped by tools) -->
+<RuleGroup name="Extracted Executables" groupRelation="and">
+  <FileCreate onmatch="include">
+    <TargetFilename condition="begin with">C:\\Windows\\Temp</TargetFilename>
+    <TargetFilename condition="begin with">C:\\Users\\*\\AppData</TargetFilename>
+    <TargetFilename condition="end with">.exe</TargetFilename>
+  </FileCreate>
+</RuleGroup>
+</EventFiltering>
+</Sysmon>
