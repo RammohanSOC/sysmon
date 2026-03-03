@@ -1,6 +1,6 @@
 @echo off
 setlocal EnableDelayedExpansion
-title Wazuh SOC - Sysmon PowerShell Config Update
+title Wazuh SOC - Sysmon PowerShell Config Fix
 
 :: 1. ADMINISTRATOR PRIVILEGE CHECK
 net session >nul 2>&1
@@ -14,24 +14,10 @@ if %errorLevel% neq 0 (
 set "SYSMON_PATH=C:\Windows\Sysmon64.exe"
 set "CONFIG_FILE=%TEMP%\suspicious_powershell.xml"
 
-:: 3. GENERATE THE XML CONFIGURATION FILE
-echo [*] Generating Sysmon XML configuration...
-(
-echo ^<Sysmon schemaversion="4.30"^>
-echo   ^<EventFiltering^>
-echo     ^<RuleGroup name="Suspicious PowerShell" groupRelation="or"^>
-echo       ^<ProcessCreate onmatch="include"^>
-echo         ^<Image condition="contains"^>powershell.exe^</Image^>
-echo         ^<Image condition="contains"^>pwsh.exe^</Image^>
-echo         ^<Image condition="contains"^>powershell_ise.exe^</Image^>
-echo       ^< /ProcessCreate^>
-echo     ^< /RuleGroup^>
-echo   ^< /EventFiltering^>
-echo ^</Sysmon^>
-) > "%CONFIG_FILE%"
-
-:: Clean up the space in tags caused by the echo formatting
-powershell -Command "(Get-Content '%CONFIG_FILE%') -replace '\^< ', '<' -replace ' \^>', '>' | Set-Content '%CONFIG_FILE%'"
+:: 3. GENERATE THE CLEAN XML USING POWERSHELL
+:: This method ensures no Batch artifacts like '@echo off' enter the XML
+echo [*] Generating clean Sysmon XML configuration...
+powershell -Command "$xml = '<Sysmon schemaversion=\"4.30\"><EventFiltering><RuleGroup name=\"Suspicious PowerShell\" groupRelation=\"or\"><ProcessCreate onmatch=\"include\"><Image condition=\"contains\">powershell.exe</Image><Image condition=\"contains\">pwsh.exe</Image><Image condition=\"contains\">powershell_ise.exe</Image></ProcessCreate></RuleGroup></EventFiltering></Sysmon>'; Set-Content -Path '%CONFIG_FILE%' -Value $xml -Encoding UTF8"
 
 :: 4. APPLY THE CONFIGURATION
 if exist "%SYSMON_PATH%" (
@@ -40,11 +26,12 @@ if exist "%SYSMON_PATH%" (
     if %errorLevel% equ 0 (
         echo [SUCCESS] Sysmon configuration updated successfully.
     ) else (
-        echo [!] ERROR: Failed to update Sysmon configuration.
+        echo [!] ERROR: Failed to update Sysmon. Check the XML syntax.
     )
 ) else (
-    echo [!] ERROR: Sysmon64.exe not found at %SYSMON_PATH%. 
-    echo Please ensure Sysmon is installed in C:\Windows\
+    echo [!] ERROR: Sysmon64.exe not found at %SYSMON_PATH%.
+    pause
+    exit /b 1
 )
 
 :: 5. VERIFICATION
@@ -53,6 +40,8 @@ echo [*] Verifying active configuration...
 "%SYSMON_PATH%" -c | findstr /i "Suspicious PowerShell"
 if %errorLevel% equ 0 (
     echo [REPORT] The "Suspicious PowerShell" rule group is now LIVE.
+) else (
+    echo [!] WARNING: Rule group not found in active config.
 )
 
 :: 6. CLEANUP
