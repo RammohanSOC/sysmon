@@ -1,0 +1,63 @@
+@echo off
+setlocal EnableDelayedExpansion
+title Wazuh SOC - Sysmon PowerShell Config Update
+
+:: 1. ADMINISTRATOR PRIVILEGE CHECK
+net session >nul 2>&1
+if %errorLevel% neq 0 (
+    echo [!] ERROR: Please run as Administrator.
+    pause
+    exit /b 1
+)
+
+:: 2. DEFINE PATHS
+set "SYSMON_PATH=C:\Windows\Sysmon64.exe"
+set "CONFIG_FILE=%TEMP%\suspicious_powershell.xml"
+
+:: 3. GENERATE THE XML CONFIGURATION FILE
+echo [*] Generating Sysmon XML configuration...
+(
+echo ^<Sysmon schemaversion="4.30"^>
+echo   ^<EventFiltering^>
+echo     ^<RuleGroup name="Suspicious PowerShell" groupRelation="or"^>
+echo       ^<ProcessCreate onmatch="include"^>
+echo         ^<Image condition="contains"^>powershell.exe^</Image^>
+echo         ^<Image condition="contains"^>pwsh.exe^</Image^>
+echo         ^<Image condition="contains"^>powershell_ise.exe^</Image^>
+echo       ^< /ProcessCreate^>
+echo     ^< /RuleGroup^>
+echo   ^< /EventFiltering^>
+echo ^</Sysmon^>
+) > "%CONFIG_FILE%"
+
+:: Clean up the space in tags caused by the echo formatting
+powershell -Command "(Get-Content '%CONFIG_FILE%') -replace '\^< ', '<' -replace ' \^>', '>' | Set-Content '%CONFIG_FILE%'"
+
+:: 4. APPLY THE CONFIGURATION
+if exist "%SYSMON_PATH%" (
+    echo [*] Applying configuration to Sysmon service...
+    "%SYSMON_PATH%" -c "%CONFIG_FILE%" -accepteula
+    if %errorLevel% equ 0 (
+        echo [SUCCESS] Sysmon configuration updated successfully.
+    ) else (
+        echo [!] ERROR: Failed to update Sysmon configuration.
+    )
+) else (
+    echo [!] ERROR: Sysmon64.exe not found at %SYSMON_PATH%. 
+    echo Please ensure Sysmon is installed in C:\Windows\
+)
+
+:: 5. VERIFICATION
+echo.
+echo [*] Verifying active configuration...
+"%SYSMON_PATH%" -c | findstr /i "Suspicious PowerShell"
+if %errorLevel% equ 0 (
+    echo [REPORT] The "Suspicious PowerShell" rule group is now LIVE.
+)
+
+:: 6. CLEANUP
+if exist "%CONFIG_FILE%" del "%CONFIG_FILE%"
+echo ============================================================
+echo [FINISHED] Your agent is now monitoring deep PS command lines.
+echo ============================================================
+pause
