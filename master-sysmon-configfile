@@ -1,4 +1,4 @@
-<Sysmon schemaversion="4.50">
+<<Sysmon schemaversion="4.50">
   <HashAlgorithms>md5,sha256</HashAlgorithms>
 
   <EventFiltering>
@@ -23,7 +23,7 @@
       </FileCreate>
     </RuleGroup>
 
-    <!-- Event ID 12 & 13: Registry Changes (Uninstall key) -->
+    <!-- Event ID 12 & 13: Registry Changes (Uninstall key persistence) -->
     <RuleGroup name="ApplicationInstall_Registry" groupRelation="or">
       <RegistryEvent onmatch="include">
         <TargetObject condition="contains">CurrentVersion\Uninstall</TargetObject>
@@ -34,12 +34,20 @@
     <!-- Anomalous File Deletion Detection -->
     <!-- ============================= -->
 
-    <!-- Event ID 23: File Delete -->
     <RuleGroup name="FileDeletionDetection" groupRelation="or">
+
+      <!-- Event ID 23: File Delete -->
       <FileDelete onmatch="include">
         <TargetFilename condition="contains">C:\Users</TargetFilename>
         <TargetFilename condition="contains">C:\Sensitive\Data</TargetFilename>
       </FileDelete>
+
+      <!-- Event ID 26: File Delete Detected (REQUIRED for reliability) -->
+      <FileDeleteDetected onmatch="include">
+        <TargetFilename condition="contains">C:\Users</TargetFilename>
+        <TargetFilename condition="contains">C:\Sensitive\Data</TargetFilename>
+      </FileDeleteDetected>
+
     </RuleGroup>
 
   </EventFiltering>
