@@ -1,0 +1,46 @@
+<Sysmon schemaversion="4.50">
+  <HashAlgorithms>md5,sha256</HashAlgorithms>
+
+  <EventFiltering>
+
+    <!-- ============================= -->
+    <!-- Application Installation Detection -->
+    <!-- ============================= -->
+
+    <!-- Event ID 1: Process Creation (Installer execution) -->
+    <RuleGroup name="ApplicationInstall_ProcessCreate" groupRelation="or">
+      <ProcessCreate onmatch="include">
+        <Image condition="contains">msiexec.exe</Image>
+        <Image condition="contains">setup.exe</Image>
+        <Image condition="contains">install.exe</Image>
+      </ProcessCreate>
+    </RuleGroup>
+
+    <!-- Event ID 11: File Creation (Program Files writes) -->
+    <RuleGroup name="ApplicationInstall_FileCreate" groupRelation="or">
+      <FileCreate onmatch="include">
+        <TargetFilename condition="contains">Program Files</TargetFilename>
+      </FileCreate>
+    </RuleGroup>
+
+    <!-- Event ID 12 & 13: Registry Changes (Uninstall key) -->
+    <RuleGroup name="ApplicationInstall_Registry" groupRelation="or">
+      <RegistryEvent onmatch="include">
+        <TargetObject condition="contains">CurrentVersion\Uninstall</TargetObject>
+      </RegistryEvent>
+    </RuleGroup>
+
+    <!-- ============================= -->
+    <!-- Anomalous File Deletion Detection -->
+    <!-- ============================= -->
+
+    <!-- Event ID 23: File Delete -->
+    <RuleGroup name="FileDeletionDetection" groupRelation="or">
+      <FileDelete onmatch="include">
+        <TargetFilename condition="contains">C:\Users</TargetFilename>
+        <TargetFilename condition="contains">C:\Sensitive\Data</TargetFilename>
+      </FileDelete>
+    </RuleGroup>
+
+  </EventFiltering>
+</Sysmon>
