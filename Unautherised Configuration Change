@@ -1,0 +1,22 @@
+<Sysmon schemaversion="4.30">
+  <EventFiltering>
+    <!-- Registry Key Changes (Persistence/Security Disabling) -->
+    <RuleGroup name="Registry Tracking" groupRelation="or">
+      <RegistryEvent onmatch="include">
+        <TargetObject condition="contains">CurrentVersion\Run</TargetObject> <!-- Startup -->
+        <TargetObject condition="contains">Services\Wazuh</TargetObject> <!-- Service Tampering -->
+        <TargetObject condition="contains">Microsoft\Windows Defender</TargetObject> <!-- Disabling AV -->
+        <TargetObject condition="contains">System\CurrentControlSet\Control\Lsa</TargetObject> <!-- Credential Access -->
+      </RegistryEvent>
+    </RuleGroup>
+
+    <!-- Process Creation (Detecting manual config tools) -->
+    <RuleGroup name="Config Tools" groupRelation="or">
+      <ProcessCreate onmatch="include">
+        <Image condition="begin with">C:\Windows\System32\reg.exe</Image>
+        <Image condition="begin with">C:\Windows\System32\net.exe</Image>
+        <Image condition="begin with">C:\Windows\System32\sc.exe</Image>
+      </ProcessCreate>
+    </RuleGroup>
+  </EventFiltering>
+</Sysmon>
