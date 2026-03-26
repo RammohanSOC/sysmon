@@ -20,6 +20,26 @@
     </RuleGroup>
 
     <!-- ============================= -->
+    <!-- Unautherised configuration chnage-->
+    <!-- ============================= -->
+
+    <RuleGroup name="Registry_Tracking" groupRelation="or">
+      <RegistryEvent onmatch="include">
+        <TargetObject condition="contains">CurrentVersion\Run</TargetObject>
+        <TargetObject condition="contains">Services\Wazuh</TargetObject>
+        <TargetObject condition="contains">Microsoft\Windows Defender</TargetObject>
+        <TargetObject condition="contains">System\CurrentControlSet\Control\Lsa</TargetObject>
+      </RegistryEvent>
+    </RuleGroup>
+    <RuleGroup name="Config_Tools" groupRelation="or">
+      <ProcessCreate onmatch="include">
+        <Image condition="begin with">C:\Windows\System32\reg.exe</Image>
+        <Image condition="begin with">C:\Windows\System32\net.exe</Image>
+        <Image condition="begin with">C:\Windows\System32\sc.exe</Image>
+      </ProcessCreate>
+    </RuleGroup>
+
+    <!-- ============================= -->
     <!-- Application Installation Detection -->
     <!-- ============================= -->
 
