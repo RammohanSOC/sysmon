@@ -1,0 +1,17 @@
+<Sysmon schemaversion="4.81">
+  <EventFiltering>
+<!-- Event ID 1: Process Creation -->
+    <RuleGroup name="Persistence Detection" groupRelation="or">
+      <ProcessCreate onmatch="include">
+        <OriginalFileName condition="is">schtasks.exe</OriginalFileName>
+        <CommandLine condition="contains">/create</CommandLine>
+      </ProcessCreate>
+     </RuleGroup>
+<!-- Event ID 12, 13: Registry Activity (Hidden Tasks) -->
+     <RuleGroup name="Task Cache Registry" groupRelation="or">
+       <RegistryEvent onmatch="include">
+         <TargetObject condition="begin with">HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree</TargetObject>
+       </RegistryEvent>
+      </RuleGroup>
+  </EventFiltering>
+</Sysmon>
