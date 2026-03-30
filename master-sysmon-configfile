@@ -20,7 +20,7 @@
     </RuleGroup>
 
     <!-- ============================= -->
-    <!-- Unautherised configuration chnage-->
+    <!-- Unauthorized Configuration Change -->
     <!-- ============================= -->
 
     <RuleGroup name="Registry_Tracking" groupRelation="or">
@@ -31,6 +31,7 @@
         <TargetObject condition="contains">System\CurrentControlSet\Control\Lsa</TargetObject>
       </RegistryEvent>
     </RuleGroup>
+
     <RuleGroup name="Config_Tools" groupRelation="or">
       <ProcessCreate onmatch="include">
         <Image condition="begin with">C:\Windows\System32\reg.exe</Image>
@@ -64,11 +65,10 @@
     </RuleGroup>
 
     <!-- ============================= -->
-    <!-- Anomalous File Deletion Detection -->
+    <!-- File Deletion Detection -->
     <!-- ============================= -->
 
     <RuleGroup name="FileDeletionDetection" groupRelation="or">
-
       <FileDelete onmatch="include">
         <TargetFilename condition="contains">C:\Users</TargetFilename>
         <TargetFilename condition="contains">C:\Sensitive\Data</TargetFilename>
@@ -78,7 +78,58 @@
         <TargetFilename condition="contains">C:\Users</TargetFilename>
         <TargetFilename condition="contains">C:\Sensitive\Data</TargetFilename>
       </FileDeleteDetected>
+    </RuleGroup>
 
+    <!-- ============================= -->
+    <!-- Scheduled Task Detection (Persistence + Execution) -->
+    <!-- ============================= -->
+
+    <!-- Task Creation / Modification via schtasks -->
+    <RuleGroup name="ScheduledTask_ProcessCreate" groupRelation="or">
+      <ProcessCreate onmatch="include">
+        <Image condition="end with">schtasks.exe</Image>
+        <CommandLine condition="contains">/create</CommandLine>
+      </ProcessCreate>
+
+      <ProcessCreate onmatch="include">
+        <Image condition="end with">schtasks.exe</Image>
+        <CommandLine condition="contains">/change</CommandLine>
+      </ProcessCreate>
+
+      <ProcessCreate onmatch="include">
+        <Image condition="end with">schtasks.exe</Image>
+        <CommandLine condition="contains">/delete</CommandLine>
+      </ProcessCreate>
+    </RuleGroup>
+
+    <!-- Suspicious Task Execution -->
+    <RuleGroup name="ScheduledTask_Execution" groupRelation="or">
+      <ProcessCreate onmatch="include">
+        <ParentImage condition="end with">taskeng.exe</ParentImage>
+      </ProcessCreate>
+
+      <ProcessCreate onmatch="include">
+        <ParentImage condition="end with">svchost.exe</ParentImage>
+        <CommandLine condition="contains">Schedule</CommandLine>
+      </ProcessCreate>
+    </RuleGroup>
+
+    <!-- Registry-based Task Persistence (Hidden Tasks) -->
+    <RuleGroup name="ScheduledTask_Registry" groupRelation="or">
+      <RegistryEvent onmatch="include">
+        <TargetObject condition="begin with">HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree</TargetObject>
+      </RegistryEvent>
+
+      <RegistryEvent onmatch="include">
+        <TargetObject condition="begin with">HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks</TargetObject>
+      </RegistryEvent>
+    </RuleGroup>
+
+    <!-- Task File Creation on Disk -->
+    <RuleGroup name="ScheduledTask_FileCreation" groupRelation="or">
+      <FileCreate onmatch="include">
+        <TargetFilename condition="contains">\Windows\System32\Tasks\</TargetFilename>
+      </FileCreate>
     </RuleGroup>
 
   </EventFiltering>
