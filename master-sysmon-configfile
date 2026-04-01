@@ -81,10 +81,32 @@
     </RuleGroup>
 
     <!-- ============================= -->
-    <!-- Scheduled Task Detection (Persistence + Execution) -->
+    <!--  Unauthorized File Access Detection -->
     <!-- ============================= -->
 
-    <!-- Task Creation / Modification via schtasks -->
+    <RuleGroup name="SensitiveFileAccess" groupRelation="or">
+
+      <!-- File Creation -->
+      <FileCreate onmatch="include">
+        <TargetFilename condition="begin with">C:\SensitiveData\</TargetFilename>
+      </FileCreate>
+
+      <!-- File Deletion -->
+      <FileDelete onmatch="include">
+        <TargetFilename condition="begin with">C:\SensitiveData\</TargetFilename>
+      </FileDelete>
+
+      <!-- File Modification -->
+      <FileCreateStreamHash onmatch="include">
+        <TargetFilename condition="begin with">C:\SensitiveData\</TargetFilename>
+      </FileCreateStreamHash>
+
+    </RuleGroup>
+
+    <!-- ============================= -->
+    <!-- Scheduled Task Detection -->
+    <!-- ============================= -->
+
     <RuleGroup name="ScheduledTask_ProcessCreate" groupRelation="or">
       <ProcessCreate onmatch="include">
         <Image condition="end with">schtasks.exe</Image>
@@ -102,7 +124,6 @@
       </ProcessCreate>
     </RuleGroup>
 
-    <!-- Suspicious Task Execution -->
     <RuleGroup name="ScheduledTask_Execution" groupRelation="or">
       <ProcessCreate onmatch="include">
         <ParentImage condition="end with">taskeng.exe</ParentImage>
@@ -114,7 +135,6 @@
       </ProcessCreate>
     </RuleGroup>
 
-    <!-- Registry-based Task Persistence (Hidden Tasks) -->
     <RuleGroup name="ScheduledTask_Registry" groupRelation="or">
       <RegistryEvent onmatch="include">
         <TargetObject condition="begin with">HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree</TargetObject>
@@ -125,7 +145,6 @@
       </RegistryEvent>
     </RuleGroup>
 
-    <!-- Task File Creation on Disk -->
     <RuleGroup name="ScheduledTask_FileCreation" groupRelation="or">
       <FileCreate onmatch="include">
         <TargetFilename condition="contains">\Windows\System32\Tasks\</TargetFilename>
