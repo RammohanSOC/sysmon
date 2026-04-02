@@ -1,4 +1,4 @@
-<Sysmon schemaversion="4.81">
+<Sysmon schemaversion="4.90">
   <HashAlgorithms>md5,sha256</HashAlgorithms>
 
   <EventFiltering>
@@ -17,6 +17,26 @@
       <RegistryEvent onmatch="include">
         <TargetObject condition="contains">Services\PSEXESVC</TargetObject>
       </RegistryEvent>
+    </RuleGroup>
+
+    <!-- ============================= -->
+    <!-- Service Installation Detection -->
+    <!-- ============================= -->
+
+    <RuleGroup name="Service_Installation_Detection" groupRelation="or">
+      <RegistryEvent onmatch="include">
+        <TargetObject condition="contains">HKLM\System\CurrentControlSet\Services</TargetObject>
+      </RegistryEvent>
+
+      <!-- Optional: correlate with service creation tools -->
+      <ProcessCreate onmatch="include">
+        <Image condition="end with">sc.exe</Image>
+      </ProcessCreate>
+
+      <ProcessCreate onmatch="include">
+        <Image condition="end with">powershell.exe</Image>
+        <CommandLine condition="contains">New-Service</CommandLine>
+      </ProcessCreate>
     </RuleGroup>
 
     <!-- ============================= -->
@@ -81,26 +101,21 @@
     </RuleGroup>
 
     <!-- ============================= -->
-    <!--  Unauthorized File Access Detection -->
+    <!-- Unauthorized File Access Detection -->
     <!-- ============================= -->
 
     <RuleGroup name="SensitiveFileAccess" groupRelation="or">
-
-      <!-- File Creation -->
       <FileCreate onmatch="include">
         <TargetFilename condition="begin with">C:\SensitiveData\</TargetFilename>
       </FileCreate>
 
-      <!-- File Deletion -->
       <FileDelete onmatch="include">
         <TargetFilename condition="begin with">C:\SensitiveData\</TargetFilename>
       </FileDelete>
 
-      <!-- File Modification -->
       <FileCreateStreamHash onmatch="include">
         <TargetFilename condition="begin with">C:\SensitiveData\</TargetFilename>
       </FileCreateStreamHash>
-
     </RuleGroup>
 
     <!-- ============================= -->
