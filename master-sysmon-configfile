@@ -131,51 +131,9 @@
       </ProcessCreate>
     </RuleGroup>
 
-    <RuleGroup name="ScheduledTask_Execution" groupRelation="or">
-      <ProcessCreate onmatch="include">
-        <ParentImage condition="end with">taskeng.exe</ParentImage>
-      </ProcessCreate>
-
-      <ProcessCreate onmatch="include">
-        <ParentImage condition="end with">svchost.exe</ParentImage>
-        <CommandLine condition="contains">Schedule</CommandLine>
-      </ProcessCreate>
-    </RuleGroup>
-
-    <RuleGroup name="ScheduledTask_Registry" groupRelation="or">
-      <RegistryEvent onmatch="include">
-        <TargetObject condition="begin with">HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree</TargetObject>
-      </RegistryEvent>
-
-      <RegistryEvent onmatch="include">
-        <TargetObject condition="begin with">HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks</TargetObject>
-      </RegistryEvent>
-    </RuleGroup>
-
-    <RuleGroup name="ScheduledTask_FileCreation" groupRelation="or">
-      <FileCreate onmatch="include">
-        <TargetFilename condition="contains">\Windows\System32\Tasks\</TargetFilename>
-      </FileCreate>
-    </RuleGroup>
-
     <!-- ============================= -->
-    <!-- Suspicious Archive Extraction Detection -->
+    <!-- Suspicious Archive Extraction -->
     <!-- ============================= -->
-    <RuleGroup name="ArchiveTools_ProcessCreate" groupRelation="or">
-      <ProcessCreate onmatch="include">
-        <Image condition="end with">7z.exe</Image>
-        <Image condition="end with">winrar.exe</Image>
-        <Image condition="end with">winzip.exe</Image>
-        <Image condition="end with">expand.exe</Image>
-        <Image condition="end with">tar.exe</Image>
-      </ProcessCreate>
-
-      <ProcessCreate onmatch="include">
-        <Image condition="end with">powershell.exe</Image>
-        <CommandLine condition="contains">Expand-Archive</CommandLine>
-      </ProcessCreate>
-    </RuleGroup>
-
     <RuleGroup name="ArchiveExtraction_FileDrop" groupRelation="or">
       <FileCreate onmatch="include">
         <TargetFilename condition="contains">\Windows\Temp\</TargetFilename>
@@ -189,45 +147,59 @@
     </RuleGroup>
 
     <!-- ============================= -->
-    <!-- Suspicious PowerShell Execution Detection -->
+    <!-- Suspicious PowerShell -->
     <!-- ============================= -->
     <RuleGroup name="PowerShell_Suspicious_Execution" groupRelation="or">
 
-      <!-- General PowerShell -->
       <ProcessCreate onmatch="include">
         <Image condition="end with">powershell.exe</Image>
         <Image condition="end with">pwsh.exe</Image>
-        <Image condition="end with">powershell_ise.exe</Image>
       </ProcessCreate>
 
-      <!-- Encoded -->
       <ProcessCreate onmatch="include">
         <Image condition="end with">powershell.exe</Image>
         <CommandLine condition="contains">-enc</CommandLine>
-      </ProcessCreate>
-
-      <!-- Bypass -->
-      <ProcessCreate onmatch="include">
-        <Image condition="end with">powershell.exe</Image>
-        <CommandLine condition="contains">-ExecutionPolicy Bypass</CommandLine>
-      </ProcessCreate>
-
-      <!-- Hidden -->
-      <ProcessCreate onmatch="include">
-        <Image condition="end with">powershell.exe</Image>
-        <CommandLine condition="contains">-WindowStyle Hidden</CommandLine>
-      </ProcessCreate>
-
-      <!-- Download cradle -->
-      <ProcessCreate onmatch="include">
-        <Image condition="end with">powershell.exe</Image>
-        <CommandLine condition="contains">Invoke-WebRequest</CommandLine>
       </ProcessCreate>
 
       <ProcessCreate onmatch="include">
         <Image condition="end with">powershell.exe</Image>
         <CommandLine condition="contains">IEX</CommandLine>
       </ProcessCreate>
+
+    </RuleGroup>
+
+    <!-- ============================= -->
+    <!-- VPN Detection (NEW) -->
+    <!-- ============================= -->
+    <RuleGroup name="VPN_Detection" groupRelation="or">
+
+      <!-- VPN Process Execution -->
+      <ProcessCreate onmatch="include">
+        <Image condition="end with">openvpn.exe</Image>
+        <Image condition="end with">wireguard.exe</Image>
+        <Image condition="end with">nordvpn.exe</Image>
+        <Image condition="end with">protonvpn.exe</Image>
+        <Image condition="end with">forticlient.exe</Image>
+        <Image condition="end with">anyconnect.exe</Image>
+      </ProcessCreate>
+
+      <!-- VPN Drivers -->
+      <DriverLoad onmatch="include">
+        <Signature condition="contains">OpenVPN</Signature>
+      </DriverLoad>
+
+      <DriverLoad onmatch="include">
+        <Signature condition="contains">WireGuard</Signature>
+      </DriverLoad>
+
+      <DriverLoad onmatch="include">
+        <ImageLoaded condition="contains">tap0901</ImageLoaded>
+      </DriverLoad>
+
+      <!-- Network Interface Creation -->
+      <RegistryEvent onmatch="include">
+        <TargetObject condition="contains">Control\\NetworkSetup2\\Interfaces</TargetObject>
+      </RegistryEvent>
 
     </RuleGroup>
 
