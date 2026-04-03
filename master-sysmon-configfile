@@ -28,7 +28,6 @@
         <TargetObject condition="contains">HKLM\System\CurrentControlSet\Services</TargetObject>
       </RegistryEvent>
 
-      <!-- Optional: correlate with service creation tools -->
       <ProcessCreate onmatch="include">
         <Image condition="end with">sc.exe</Image>
       </ProcessCreate>
@@ -163,6 +162,40 @@
     <RuleGroup name="ScheduledTask_FileCreation" groupRelation="or">
       <FileCreate onmatch="include">
         <TargetFilename condition="contains">\Windows\System32\Tasks\</TargetFilename>
+      </FileCreate>
+    </RuleGroup>
+
+    <!-- ============================= -->
+    <!-- Suspicious Archive Extraction Detection (NEW) -->
+    <!-- ============================= -->
+
+    <RuleGroup name="ArchiveTools_ProcessCreate" groupRelation="or">
+      <ProcessCreate onmatch="include">
+        <Image condition="end with">7z.exe</Image>
+        <Image condition="end with">winrar.exe</Image>
+        <Image condition="end with">winzip.exe</Image>
+        <Image condition="end with">expand.exe</Image>
+        <Image condition="end with">tar.exe</Image>
+      </ProcessCreate>
+
+      <ProcessCreate onmatch="include">
+        <Image condition="end with">powershell.exe</Image>
+        <CommandLine condition="contains">Expand-Archive</CommandLine>
+      </ProcessCreate>
+    </RuleGroup>
+
+    <RuleGroup name="ArchiveExtraction_FileDrop" groupRelation="or">
+      <FileCreate onmatch="include">
+        <TargetFilename condition="begin with">C:\Windows\Temp</TargetFilename>
+      </FileCreate>
+
+      <FileCreate onmatch="include">
+        <TargetFilename condition="begin with">C:\Users\</TargetFilename>
+        <TargetFilename condition="contains">\AppData\</TargetFilename>
+      </FileCreate>
+
+      <FileCreate onmatch="include">
+        <TargetFilename condition="end with">.exe</TargetFilename>
       </FileCreate>
     </RuleGroup>
 
