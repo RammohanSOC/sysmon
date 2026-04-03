@@ -6,7 +6,6 @@
     <!-- ============================= -->
     <!-- Privilege Escalation (PsExec-like behavior) -->
     <!-- ============================= -->
-
     <RuleGroup name="PrivilegeEscalation_PsExec" groupRelation="or">
       <ProcessCreate onmatch="include">
         <ParentImage condition="image">PSEXESVC.exe</ParentImage>
@@ -22,7 +21,6 @@
     <!-- ============================= -->
     <!-- Service Installation Detection -->
     <!-- ============================= -->
-
     <RuleGroup name="Service_Installation_Detection" groupRelation="or">
       <RegistryEvent onmatch="include">
         <TargetObject condition="contains">HKLM\System\CurrentControlSet\Services</TargetObject>
@@ -41,7 +39,6 @@
     <!-- ============================= -->
     <!-- Unauthorized Configuration Change -->
     <!-- ============================= -->
-
     <RuleGroup name="Registry_Tracking" groupRelation="or">
       <RegistryEvent onmatch="include">
         <TargetObject condition="contains">CurrentVersion\Run</TargetObject>
@@ -62,7 +59,6 @@
     <!-- ============================= -->
     <!-- Application Installation Detection -->
     <!-- ============================= -->
-
     <RuleGroup name="ApplicationInstall_ProcessCreate" groupRelation="or">
       <ProcessCreate onmatch="include">
         <Image condition="contains">msiexec.exe</Image>
@@ -86,7 +82,6 @@
     <!-- ============================= -->
     <!-- File Deletion Detection -->
     <!-- ============================= -->
-
     <RuleGroup name="FileDeletionDetection" groupRelation="or">
       <FileDelete onmatch="include">
         <TargetFilename condition="contains">C:\Users</TargetFilename>
@@ -102,7 +97,6 @@
     <!-- ============================= -->
     <!-- Unauthorized File Access Detection -->
     <!-- ============================= -->
-
     <RuleGroup name="SensitiveFileAccess" groupRelation="or">
       <FileCreate onmatch="include">
         <TargetFilename condition="begin with">C:\SensitiveData\</TargetFilename>
@@ -120,7 +114,6 @@
     <!-- ============================= -->
     <!-- Scheduled Task Detection -->
     <!-- ============================= -->
-
     <RuleGroup name="ScheduledTask_ProcessCreate" groupRelation="or">
       <ProcessCreate onmatch="include">
         <Image condition="end with">schtasks.exe</Image>
@@ -168,7 +161,6 @@
     <!-- ============================= -->
     <!-- Suspicious Archive Extraction Detection -->
     <!-- ============================= -->
-
     <RuleGroup name="ArchiveTools_ProcessCreate" groupRelation="or">
       <ProcessCreate onmatch="include">
         <Image condition="end with">7z.exe</Image>
@@ -184,20 +176,58 @@
       </ProcessCreate>
     </RuleGroup>
 
-    <!-- ✅ FIXED LOGIC -->
     <RuleGroup name="ArchiveExtraction_FileDrop" groupRelation="or">
-      
-      <!-- EXE dropped in Windows Temp -->
       <FileCreate onmatch="include">
         <TargetFilename condition="contains">\Windows\Temp\</TargetFilename>
         <TargetFilename condition="end with">.exe</TargetFilename>
       </FileCreate>
 
-      <!-- EXE dropped in AppData -->
       <FileCreate onmatch="include">
-        <TargetFilename condition="contains">\AppData\</TargetFilename>
+        <TargetFilename condition="contains">\AppData\Local\Temp\</TargetFilename>
         <TargetFilename condition="end with">.exe</TargetFilename>
       </FileCreate>
+    </RuleGroup>
+
+    <!-- ============================= -->
+    <!-- Suspicious PowerShell Execution Detection -->
+    <!-- ============================= -->
+    <RuleGroup name="PowerShell_Suspicious_Execution" groupRelation="or">
+
+      <!-- General PowerShell -->
+      <ProcessCreate onmatch="include">
+        <Image condition="end with">powershell.exe</Image>
+        <Image condition="end with">pwsh.exe</Image>
+        <Image condition="end with">powershell_ise.exe</Image>
+      </ProcessCreate>
+
+      <!-- Encoded -->
+      <ProcessCreate onmatch="include">
+        <Image condition="end with">powershell.exe</Image>
+        <CommandLine condition="contains">-enc</CommandLine>
+      </ProcessCreate>
+
+      <!-- Bypass -->
+      <ProcessCreate onmatch="include">
+        <Image condition="end with">powershell.exe</Image>
+        <CommandLine condition="contains">-ExecutionPolicy Bypass</CommandLine>
+      </ProcessCreate>
+
+      <!-- Hidden -->
+      <ProcessCreate onmatch="include">
+        <Image condition="end with">powershell.exe</Image>
+        <CommandLine condition="contains">-WindowStyle Hidden</CommandLine>
+      </ProcessCreate>
+
+      <!-- Download cradle -->
+      <ProcessCreate onmatch="include">
+        <Image condition="end with">powershell.exe</Image>
+        <CommandLine condition="contains">Invoke-WebRequest</CommandLine>
+      </ProcessCreate>
+
+      <ProcessCreate onmatch="include">
+        <Image condition="end with">powershell.exe</Image>
+        <CommandLine condition="contains">IEX</CommandLine>
+      </ProcessCreate>
 
     </RuleGroup>
 
