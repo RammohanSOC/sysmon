@@ -1,0 +1,100 @@
+@echo off
+setlocal enabledelayedexpansion
+echo ============================================
+echo Windows File Access Auditing Setup
+echo ============================================
+:: ==============================
+:: Step 1 - Enable Audit Policy
+:: ==============================
+echo [1/5] Enabling Audit Policy...
+auditpol /set /subcategory:"File System" /success:enable /failure:enable
+echo Verifying Audit Policy...
+auditpol /get /subcategory:"File System"
+:: ==============================
+:: Step 2 - Set Folder Path
+:: ==============================
+set FOLDER_PATH=C:\SensitiveData
+if not exist "%FOLDER_PATH%" (
+echo ERROR: Folder %FOLDER_PATH% does not exist.
+echo Please create it before running this script.
+pause
+exit /b 1
+)
+echo ============================================
+echo [2/5] Configuring Folder Auditing
+echo ============================================
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+"$path='%FOLDER_PATH%'; ^
+$acl = Get-Acl $path; ^
+$rule = New-Object System.Security.AccessControl.FileSystemAuditRule('Everyone','FullControl','ContainerInherit,ObjectInherit','None','Success'); ^
+$acl.AddAuditRule($rule); ^
+Set-Acl $path $acl"
+if %ERRORLEVEL% NEQ 0 (
+echo ERROR configuring folder auditing
+pause
+exit /b 1
+)
+echo Folder auditing configured successfully.
+:: ==============================
+:: Step 3 - Validate Event Logs (FIXED)
+:: ==============================
+echo ============================================
+echo [3/5] Checking Event ID 4663
+echo ============================================
+set PS_SCRIPT=%TEMP%\check_events.ps1
+echo Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4663} -MaxEvents 5 ^| Select-Object TimeCreated, Id, Message > "%PS_SCRIPT%"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PS_SCRIPT%"
+del "%PS_SCRIPT%"
+:: ==============================
+:: Step 4 - Configure Wazuh Agent
+:: ==============================
+echo ============================================
+echo [4/5] Configuring Wazuh Agent
+echo ============================================
+set WAZUH_CONF=C:\Program Files (x86)\ossec-agent\ossec.conf
+if not exist "%WAZUH_CONF%" (
+echo WARNING: Wazuh config not found, skipping...
+goto RESTART
+)
+copy "%WAZUH_CONF%" "%WAZUH_CONF%.bak" >nul
+findstr /C:"<location>Security</location>" "%WAZUH_CONF%" >nul
+if %ERRORLEVEL% NEQ 0 (
+echo Adding Security log collection...
+set PS_WAZUH=%TEMP%\\update_wazuh.ps1
+
+echo $file="%WAZUH_CONF%" > "%PS_WAZUH%"
+echo $content = Get-Content $file >> "%PS_WAZUH%"
+echo $insert = @" >> "%PS_WAZUH%"
+echo ^<localfile^> >> "%PS_WAZUH%"
+echo   ^<location^>Security^</location^> >> "%PS_WAZUH%"
+echo   ^<log_format^>eventchannel^</log_format^> >> "%PS_WAZUH%"
+echo ^</localfile^> >> "%PS_WAZUH%"
+echo "@ >> "%PS_WAZUH%"
+echo $content = $content -replace '</ossec_config>', $insert + '</ossec_config>' >> "%PS_WAZUH%"
+echo Set-Content -Path $file -Value $content >> "%PS_WAZUH%"
+
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PS_WAZUH%"
+
+del "%PS_WAZUH%"
+) 
+else (
+echo Wazuh config already contains Security log configuration.
+)
+:: ==============================
+:: Step 5 - Restart Wazuh
+:: ==============================
+:RESTART
+echo ============================================
+echo [5/5] Restarting Wazuh Agent
+echo ============================================
+net stop WazuhSvc >nul 2>&1
+net start WazuhSvc >nul 2>&1
+echo ============================================
+echo ✅ Configuration Completed Successfully
+echo ============================================
+echo.
+echo Test Steps:
+echo 1. Go to %FOLDER_PATH%
+echo 2. Create or open a file
+echo 3. Check Event Viewer -> Security -> Event ID 4663
+pause
