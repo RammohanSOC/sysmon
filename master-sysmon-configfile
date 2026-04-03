@@ -168,40 +168,5 @@
 
     </RuleGroup>
 
-    <!-- ============================= -->
-    <!-- VPN Detection (NEW) -->
-    <!-- ============================= -->
-    <RuleGroup name="VPN_Detection" groupRelation="or">
-
-      <!-- VPN Process Execution -->
-      <ProcessCreate onmatch="include">
-        <Image condition="end with">openvpn.exe</Image>
-        <Image condition="end with">wireguard.exe</Image>
-        <Image condition="end with">nordvpn.exe</Image>
-        <Image condition="end with">protonvpn.exe</Image>
-        <Image condition="end with">forticlient.exe</Image>
-        <Image condition="end with">anyconnect.exe</Image>
-      </ProcessCreate>
-
-      <!-- VPN Drivers -->
-      <DriverLoad onmatch="include">
-        <Signature condition="contains">OpenVPN</Signature>
-      </DriverLoad>
-
-      <DriverLoad onmatch="include">
-        <Signature condition="contains">WireGuard</Signature>
-      </DriverLoad>
-
-      <DriverLoad onmatch="include">
-        <ImageLoaded condition="contains">tap0901</ImageLoaded>
-      </DriverLoad>
-
-      <!-- Network Interface Creation -->
-      <RegistryEvent onmatch="include">
-        <TargetObject condition="contains">Control\\NetworkSetup2\\Interfaces</TargetObject>
-      </RegistryEvent>
-
-    </RuleGroup>
-
   </EventFiltering>
 </Sysmon>
