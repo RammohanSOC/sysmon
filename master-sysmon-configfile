@@ -166,7 +166,7 @@
     </RuleGroup>
 
     <!-- ============================= -->
-    <!-- Suspicious Archive Extraction Detection (NEW) -->
+    <!-- Suspicious Archive Extraction Detection -->
     <!-- ============================= -->
 
     <RuleGroup name="ArchiveTools_ProcessCreate" groupRelation="or">
@@ -184,19 +184,21 @@
       </ProcessCreate>
     </RuleGroup>
 
+    <!-- ✅ FIXED LOGIC -->
     <RuleGroup name="ArchiveExtraction_FileDrop" groupRelation="or">
+      
+      <!-- EXE dropped in Windows Temp -->
       <FileCreate onmatch="include">
-        <TargetFilename condition="begin with">C:\Windows\Temp</TargetFilename>
-      </FileCreate>
-
-      <FileCreate onmatch="include">
-        <TargetFilename condition="begin with">C:\Users\</TargetFilename>
-        <TargetFilename condition="contains">\AppData\</TargetFilename>
-      </FileCreate>
-
-      <FileCreate onmatch="include">
+        <TargetFilename condition="contains">\Windows\Temp\</TargetFilename>
         <TargetFilename condition="end with">.exe</TargetFilename>
       </FileCreate>
+
+      <!-- EXE dropped in AppData -->
+      <FileCreate onmatch="include">
+        <TargetFilename condition="contains">\AppData\</TargetFilename>
+        <TargetFilename condition="end with">.exe</TargetFilename>
+      </FileCreate>
+
     </RuleGroup>
 
   </EventFiltering>
