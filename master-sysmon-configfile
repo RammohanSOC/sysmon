@@ -95,7 +95,7 @@
     </RuleGroup>
 
     <!-- ============================= -->
-    <!-- Unauthorized File Access Detection -->
+    <!-- Unauthorized File Access -->
     <!-- ============================= -->
     <RuleGroup name="SensitiveFileAccess" groupRelation="or">
       <FileCreate onmatch="include">
@@ -132,21 +132,6 @@
     </RuleGroup>
 
     <!-- ============================= -->
-    <!-- Suspicious Archive Extraction -->
-    <!-- ============================= -->
-    <RuleGroup name="ArchiveExtraction_FileDrop" groupRelation="or">
-      <FileCreate onmatch="include">
-        <TargetFilename condition="contains">\Windows\Temp\</TargetFilename>
-        <TargetFilename condition="end with">.exe</TargetFilename>
-      </FileCreate>
-
-      <FileCreate onmatch="include">
-        <TargetFilename condition="contains">\AppData\Local\Temp\</TargetFilename>
-        <TargetFilename condition="end with">.exe</TargetFilename>
-      </FileCreate>
-    </RuleGroup>
-
-    <!-- ============================= -->
     <!-- Suspicious PowerShell -->
     <!-- ============================= -->
     <RuleGroup name="PowerShell_Suspicious_Execution" groupRelation="or">
@@ -166,6 +151,44 @@
         <CommandLine condition="contains">IEX</CommandLine>
       </ProcessCreate>
 
+    </RuleGroup>
+
+    <!-- ============================= -->
+    <!-- 🚨 LSASS DUMP / Credential Dump Detection -->
+    <!-- ============================= -->
+
+    <!-- Known dumping tools -->
+    <RuleGroup name="CredentialDump_Tools" groupRelation="or">
+      <ProcessCreate onmatch="include">
+        <Image condition="end with">procdump.exe</Image>
+        <Image condition="end with">procdump64.exe</Image>
+        <Image condition="end with">mimikatz.exe</Image>
+        <Image condition="end with">nanodump.exe</Image>
+      </ProcessCreate>
+    </RuleGroup>
+
+    <!-- LSASS access -->
+    <RuleGroup name="LSASS_Access" groupRelation="or">
+      <ProcessAccess onmatch="include">
+        <TargetImage condition="is">C:\Windows\System32\lsass.exe</TargetImage>
+      </ProcessAccess>
+
+      <!-- Reduce noise -->
+      <ProcessAccess onmatch="exclude">
+        <SourceImage condition="is">C:\Windows\System32\svchost.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\wininit.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\csrss.exe</SourceImage>
+        <SourceImage condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</SourceImage>
+        <SourceImage condition="begin with">C:\Program Files\VMware\</SourceImage>
+      </ProcessAccess>
+    </RuleGroup>
+
+    <!-- Dump file creation -->
+    <RuleGroup name="DumpFileCreation" groupRelation="or">
+      <FileCreate onmatch="include">
+        <TargetFilename condition="end with">.dmp</TargetFilename>
+        <TargetFilename condition="end with">.mdmp</TargetFilename>
+      </FileCreate>
     </RuleGroup>
 
   </EventFiltering>
