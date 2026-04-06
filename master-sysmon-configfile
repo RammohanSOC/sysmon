@@ -35,6 +35,23 @@
         <CommandLine condition="contains">New-Service</CommandLine>
       </ProcessCreate>
     </RuleGroup>
+    <!-- ============================= -->
+    <!-- 🌐 Beaconing / Network Detection (CRITICAL) -->
+    <!-- ============================= -->
+    <RuleGroup name="Network_Beaconing_Detection" groupRelation="or">
+      <NetworkConnect onmatch="include">
+
+        <!-- Exclude very noisy Windows processes -->
+        <Image condition="is not">C:\Windows\System32\svchost.exe</Image>
+        <Image condition="is not">C:\Windows\System32\dns.exe</Image>
+
+        <!-- Optional: reduce browser noise -->
+        <Image condition="is not">C:\Program Files\Google\Chrome\Application\chrome.exe</Image>
+        <Image condition="is not">C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe</Image>
+        <Image condition="is not">C:\Program Files\Mozilla Firefox\firefox.exe</Image>
+
+      </NetworkConnect>
+    </RuleGroup>
 
     <!-- ============================= -->
     <!-- Unauthorized Configuration Change -->
