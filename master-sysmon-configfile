@@ -205,6 +205,6 @@
     <Image condition="is">C:\Windows\System32\svchost.exe</Image>
   </FileCreate>
 
-</RuleGroup>
-  </EventFiltering>
+ </RuleGroup>
+</EventFiltering>
 </Sysmon>
