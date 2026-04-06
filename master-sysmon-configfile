@@ -154,42 +154,57 @@
     </RuleGroup>
 
     <!-- ============================= -->
-    <!-- 🚨 LSASS DUMP / Credential Dump Detection -->
-    <!-- ============================= -->
+<!-- 🚨 LSASS DUMP / Credential Dump Detection (UPDATED) -->
+<!-- ============================= -->
 
-    <!-- Known dumping tools -->
-    <RuleGroup name="CredentialDump_Tools" groupRelation="or">
-      <ProcessCreate onmatch="include">
-        <Image condition="end with">procdump.exe</Image>
-        <Image condition="end with">procdump64.exe</Image>
-        <Image condition="end with">mimikatz.exe</Image>
-        <Image condition="end with">nanodump.exe</Image>
-      </ProcessCreate>
-    </RuleGroup>
+<!-- Known dumping tools -->
+<RuleGroup name="CredentialDump_Tools" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <Image condition="end with">procdump.exe</Image>
+    <Image condition="end with">procdump64.exe</Image>
+    <Image condition="end with">mimikatz.exe</Image>
+    <Image condition="end with">nanodump.exe</Image>
+    <Image condition="end with">sqldumper.exe</Image>
+  </ProcessCreate>
+</RuleGroup>
 
-    <!-- LSASS access -->
-    <RuleGroup name="LSASS_Access" groupRelation="or">
-      <ProcessAccess onmatch="include">
-        <TargetImage condition="is">C:\Windows\System32\lsass.exe</TargetImage>
-      </ProcessAccess>
+<!-- LSASS access -->
+<RuleGroup name="LSASS_Access" groupRelation="or">
+  <ProcessAccess onmatch="include">
+    <TargetImage condition="is">C:\Windows\System32\lsass.exe</TargetImage>
+  </ProcessAccess>
 
-      <!-- Reduce noise -->
-      <ProcessAccess onmatch="exclude">
-        <SourceImage condition="is">C:\Windows\System32\svchost.exe</SourceImage>
-        <SourceImage condition="is">C:\Windows\System32\wininit.exe</SourceImage>
-        <SourceImage condition="is">C:\Windows\System32\csrss.exe</SourceImage>
-        <SourceImage condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</SourceImage>
-        <SourceImage condition="begin with">C:\Program Files\VMware\</SourceImage>
-      </ProcessAccess>
-    </RuleGroup>
+  <!-- Noise reduction -->
+  <ProcessAccess onmatch="exclude">
+    <SourceImage condition="is">C:\Windows\System32\svchost.exe</SourceImage>
+    <SourceImage condition="is">C:\Windows\System32\wininit.exe</SourceImage>
+    <SourceImage condition="is">C:\Windows\System32\csrss.exe</SourceImage>
+    <SourceImage condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</SourceImage>
+    <SourceImage condition="begin with">C:\Program Files\VMware\</SourceImage>
+  </ProcessAccess>
+</RuleGroup>
 
-    <!-- Dump file creation -->
-    <RuleGroup name="DumpFileCreation" groupRelation="or">
-      <FileCreate onmatch="include">
-        <TargetFilename condition="end with">.dmp</TargetFilename>
-        <TargetFilename condition="end with">.mdmp</TargetFilename>
-      </FileCreate>
-    </RuleGroup>
+<!-- ✅ UPDATED Dump file creation (FIXED) -->
+<RuleGroup name="DumpFileCreation" groupRelation="or">
 
+  <!-- Include only meaningful dump files -->
+  <FileCreate onmatch="include">
+
+    <!-- LSASS-specific dump (high fidelity) -->
+    <TargetFilename condition="contains">lsass</TargetFilename>
+
+    <!-- Generic dump extensions -->
+    <TargetFilename condition="end with">.dmp</TargetFilename>
+    <TargetFilename condition="end with">.mdmp</TargetFilename>
+
+  </FileCreate>
+
+  <!-- Exclude normal OS crash noise -->
+  <FileCreate onmatch="exclude">
+    <Image condition="is">C:\Windows\System32\WerFault.exe</Image>
+    <Image condition="is">C:\Windows\System32\svchost.exe</Image>
+  </FileCreate>
+
+</RuleGroup>
   </EventFiltering>
 </Sysmon>
