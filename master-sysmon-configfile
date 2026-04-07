@@ -35,22 +35,40 @@
         <CommandLine condition="contains">New-Service</CommandLine>
       </ProcessCreate>
     </RuleGroup>
+
     <!-- ============================= -->
-    <!-- 🌐 Beaconing / Network Detection (CRITICAL) -->
+    <!-- 🌐 UPDATED Beaconing Detection (Event ID 3) -->
     <!-- ============================= -->
     <RuleGroup name="Network_Beaconing_Detection" groupRelation="or">
       <NetworkConnect onmatch="include">
 
-        <!-- Exclude very noisy Windows processes -->
+        <!-- Exclude noisy system processes -->
         <Image condition="is not">C:\Windows\System32\svchost.exe</Image>
         <Image condition="is not">C:\Windows\System32\dns.exe</Image>
+        <Image condition="is not">C:\Windows\System32\lsass.exe</Image>
 
-        <!-- Optional: reduce browser noise -->
+        <!-- Reduce browser noise -->
         <Image condition="is not">C:\Program Files\Google\Chrome\Application\chrome.exe</Image>
         <Image condition="is not">C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe</Image>
-        <Image condition="is not">C:\Program Files\Mozilla Firefox\firefox.exe</Image>
+
+        <!-- Exclude localhost -->
+        <DestinationIp condition="is not">127.0.0.1</DestinationIp>
+        <DestinationIp condition="is not">::1</DestinationIp>
 
       </NetworkConnect>
+    </RuleGroup>
+
+    <!-- ============================= -->
+    <!-- 🌐 DNS Monitoring (Event ID 22) -->
+    <!-- ============================= -->
+    <RuleGroup name="DNS_Query_Monitoring" groupRelation="or">
+      <DnsQuery onmatch="include">
+
+        <!-- Exclude browsers -->
+        <Image condition="is not">C:\Program Files\Google\Chrome\Application\chrome.exe</Image>
+        <Image condition="is not">C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe</Image>
+
+      </DnsQuery>
     </RuleGroup>
 
     <!-- ============================= -->
@@ -112,7 +130,7 @@
     </RuleGroup>
 
     <!-- ============================= -->
-    <!-- Unauthorized File Access -->
+    <!-- Sensitive File Access -->
     <!-- ============================= -->
     <RuleGroup name="SensitiveFileAccess" groupRelation="or">
       <FileCreate onmatch="include">
@@ -167,10 +185,8 @@
     </RuleGroup>
 
     <!-- ============================= -->
-    <!-- 🚨 Credential Dump Detection -->
+    <!-- Credential Dump Detection -->
     <!-- ============================= -->
-
-    <!-- Dump tools -->
     <RuleGroup name="CredentialDump_Tools" groupRelation="or">
       <ProcessCreate onmatch="include">
         <Image condition="end with">procdump.exe</Image>
@@ -181,7 +197,6 @@
       </ProcessCreate>
     </RuleGroup>
 
-    <!-- LSASS access -->
     <RuleGroup name="LSASS_Access" groupRelation="or">
       <ProcessAccess onmatch="include">
         <TargetImage condition="is">C:\Windows\System32\lsass.exe</TargetImage>
@@ -192,25 +207,19 @@
         <SourceImage condition="is">C:\Windows\System32\wininit.exe</SourceImage>
         <SourceImage condition="is">C:\Windows\System32\csrss.exe</SourceImage>
         <SourceImage condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</SourceImage>
-        <SourceImage condition="begin with">C:\Program Files\VMware\</SourceImage>
       </ProcessAccess>
     </RuleGroup>
 
-    <!-- 🔥 UPDATED Dump Detection -->
     <RuleGroup name="DumpFileCreation" groupRelation="or">
-
-      <!-- File creation -->
       <FileCreate onmatch="include">
         <TargetFilename condition="end with">.dmp</TargetFilename>
         <TargetFilename condition="end with">.mdmp</TargetFilename>
       </FileCreate>
 
-      <!-- Command-line fallback -->
       <ProcessCreate onmatch="include">
         <CommandLine condition="contains">.dmp</CommandLine>
         <CommandLine condition="contains">.mdmp</CommandLine>
       </ProcessCreate>
-
     </RuleGroup>
 
   </EventFiltering>
