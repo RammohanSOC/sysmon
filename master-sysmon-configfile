@@ -37,21 +37,65 @@
     </RuleGroup>
 
     <!-- ============================= -->
-    <!-- 🌐 UPDATED Beaconing Detection (Event ID 3) -->
+    <!-- 🌐 VPN Detection (ENHANCED - NEW) -->
+    <!-- ============================= -->
+    <RuleGroup name="VPN_Detection_Enhanced" groupRelation="or">
+
+      <ProcessCreate onmatch="include">
+        <Image condition="contains">openvpn</Image>
+        <Image condition="contains">wireguard</Image>
+        <Image condition="contains">nordvpn</Image>
+        <Image condition="contains">protonvpn</Image>
+        <Image condition="contains">expressvpn</Image>
+        <Image condition="contains">forticlient</Image>
+        <Image condition="contains">anyconnect</Image>
+        <Image condition="contains">tailscale</Image>
+
+        <CommandLine condition="contains">--config</CommandLine>
+        <CommandLine condition="contains">.ovpn</CommandLine>
+      </ProcessCreate>
+
+      <NetworkConnect onmatch="include">
+        <Image condition="contains">openvpn</Image>
+        <Image condition="contains">wireguard</Image>
+        <Image condition="contains">nordvpn</Image>
+        <Image condition="contains">protonvpn</Image>
+        <Image condition="contains">anyconnect</Image>
+        <Image condition="contains">forticlient</Image>
+
+        <DestinationIp condition="is not">127.0.0.1</DestinationIp>
+        <DestinationIp condition="is not">10.</DestinationIp>
+        <DestinationIp condition="is not">192.168.</DestinationIp>
+        <DestinationIp condition="is not">172.</DestinationIp>
+      </NetworkConnect>
+
+      <DriverLoad onmatch="include">
+        <Signature condition="contains">OpenVPN</Signature>
+        <Signature condition="contains">WireGuard</Signature>
+        <ImageLoaded condition="contains">tap</ImageLoaded>
+        <ImageLoaded condition="contains">tun</ImageLoaded>
+        <ImageLoaded condition="contains">wintun</ImageLoaded>
+      </DriverLoad>
+
+      <RegistryEvent onmatch="include">
+        <TargetObject condition="contains">NetworkSetup2\Interfaces</TargetObject>
+      </RegistryEvent>
+
+    </RuleGroup>
+
+    <!-- ============================= -->
+    <!-- 🌐 Beaconing Detection -->
     <!-- ============================= -->
     <RuleGroup name="Network_Beaconing_Detection" groupRelation="or">
       <NetworkConnect onmatch="include">
 
-        <!-- Exclude noisy system processes -->
         <Image condition="is not">C:\Windows\System32\svchost.exe</Image>
         <Image condition="is not">C:\Windows\System32\dns.exe</Image>
         <Image condition="is not">C:\Windows\System32\lsass.exe</Image>
 
-        <!-- Reduce browser noise -->
         <Image condition="is not">C:\Program Files\Google\Chrome\Application\chrome.exe</Image>
         <Image condition="is not">C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe</Image>
 
-        <!-- Exclude localhost -->
         <DestinationIp condition="is not">127.0.0.1</DestinationIp>
         <DestinationIp condition="is not">::1</DestinationIp>
 
@@ -59,20 +103,17 @@
     </RuleGroup>
 
     <!-- ============================= -->
-    <!-- 🌐 DNS Monitoring (Event ID 22) -->
+    <!-- DNS Monitoring -->
     <!-- ============================= -->
     <RuleGroup name="DNS_Query_Monitoring" groupRelation="or">
       <DnsQuery onmatch="include">
-
-        <!-- Exclude browsers -->
         <Image condition="is not">C:\Program Files\Google\Chrome\Application\chrome.exe</Image>
         <Image condition="is not">C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe</Image>
-
       </DnsQuery>
     </RuleGroup>
 
     <!-- ============================= -->
-    <!-- Unauthorized Configuration Change -->
+    <!-- Registry Tracking -->
     <!-- ============================= -->
     <RuleGroup name="Registry_Tracking" groupRelation="or">
       <RegistryEvent onmatch="include">
@@ -83,86 +124,14 @@
       </RegistryEvent>
     </RuleGroup>
 
+    <!-- ============================= -->
+    <!-- Config Tools -->
+    <!-- ============================= -->
     <RuleGroup name="Config_Tools" groupRelation="or">
       <ProcessCreate onmatch="include">
         <Image condition="begin with">C:\Windows\System32\reg.exe</Image>
         <Image condition="begin with">C:\Windows\System32\net.exe</Image>
         <Image condition="begin with">C:\Windows\System32\sc.exe</Image>
-      </ProcessCreate>
-    </RuleGroup>
-
-    <!-- ============================= -->
-    <!-- Application Installation Detection -->
-    <!-- ============================= -->
-    <RuleGroup name="ApplicationInstall_ProcessCreate" groupRelation="or">
-      <ProcessCreate onmatch="include">
-        <Image condition="contains">msiexec.exe</Image>
-        <Image condition="contains">setup.exe</Image>
-        <Image condition="contains">install.exe</Image>
-      </ProcessCreate>
-    </RuleGroup>
-
-    <RuleGroup name="ApplicationInstall_FileCreate" groupRelation="or">
-      <FileCreate onmatch="include">
-        <TargetFilename condition="contains">Program Files</TargetFilename>
-      </FileCreate>
-    </RuleGroup>
-
-    <RuleGroup name="ApplicationInstall_Registry" groupRelation="or">
-      <RegistryEvent onmatch="include">
-        <TargetObject condition="contains">CurrentVersion\Uninstall</TargetObject>
-      </RegistryEvent>
-    </RuleGroup>
-
-    <!-- ============================= -->
-    <!-- File Deletion Detection -->
-    <!-- ============================= -->
-    <RuleGroup name="FileDeletionDetection" groupRelation="or">
-      <FileDelete onmatch="include">
-        <TargetFilename condition="contains">C:\Users</TargetFilename>
-        <TargetFilename condition="contains">C:\Sensitive\Data</TargetFilename>
-      </FileDelete>
-
-      <FileDeleteDetected onmatch="include">
-        <TargetFilename condition="contains">C:\Users</TargetFilename>
-        <TargetFilename condition="contains">C:\Sensitive\Data</TargetFilename>
-      </FileDeleteDetected>
-    </RuleGroup>
-
-    <!-- ============================= -->
-    <!-- Sensitive File Access -->
-    <!-- ============================= -->
-    <RuleGroup name="SensitiveFileAccess" groupRelation="or">
-      <FileCreate onmatch="include">
-        <TargetFilename condition="begin with">C:\SensitiveData\</TargetFilename>
-      </FileCreate>
-
-      <FileDelete onmatch="include">
-        <TargetFilename condition="begin with">C:\SensitiveData\</TargetFilename>
-      </FileDelete>
-
-      <FileCreateStreamHash onmatch="include">
-        <TargetFilename condition="begin with">C:\SensitiveData\</TargetFilename>
-      </FileCreateStreamHash>
-    </RuleGroup>
-
-    <!-- ============================= -->
-    <!-- Scheduled Task Detection -->
-    <!-- ============================= -->
-    <RuleGroup name="ScheduledTask_ProcessCreate" groupRelation="or">
-      <ProcessCreate onmatch="include">
-        <Image condition="end with">schtasks.exe</Image>
-        <CommandLine condition="contains">/create</CommandLine>
-      </ProcessCreate>
-
-      <ProcessCreate onmatch="include">
-        <Image condition="end with">schtasks.exe</Image>
-        <CommandLine condition="contains">/change</CommandLine>
-      </ProcessCreate>
-
-      <ProcessCreate onmatch="include">
-        <Image condition="end with">schtasks.exe</Image>
-        <CommandLine condition="contains">/delete</CommandLine>
       </ProcessCreate>
     </RuleGroup>
 
@@ -193,7 +162,6 @@
         <Image condition="end with">procdump64.exe</Image>
         <Image condition="end with">mimikatz.exe</Image>
         <Image condition="end with">nanodump.exe</Image>
-        <Image condition="end with">sqldumper.exe</Image>
       </ProcessCreate>
     </RuleGroup>
 
@@ -201,25 +169,6 @@
       <ProcessAccess onmatch="include">
         <TargetImage condition="is">C:\Windows\System32\lsass.exe</TargetImage>
       </ProcessAccess>
-
-      <ProcessAccess onmatch="exclude">
-        <SourceImage condition="is">C:\Windows\System32\svchost.exe</SourceImage>
-        <SourceImage condition="is">C:\Windows\System32\wininit.exe</SourceImage>
-        <SourceImage condition="is">C:\Windows\System32\csrss.exe</SourceImage>
-        <SourceImage condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</SourceImage>
-      </ProcessAccess>
-    </RuleGroup>
-
-    <RuleGroup name="DumpFileCreation" groupRelation="or">
-      <FileCreate onmatch="include">
-        <TargetFilename condition="end with">.dmp</TargetFilename>
-        <TargetFilename condition="end with">.mdmp</TargetFilename>
-      </FileCreate>
-
-      <ProcessCreate onmatch="include">
-        <CommandLine condition="contains">.dmp</CommandLine>
-        <CommandLine condition="contains">.mdmp</CommandLine>
-      </ProcessCreate>
     </RuleGroup>
 
   </EventFiltering>
