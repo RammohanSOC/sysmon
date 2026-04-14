@@ -1,0 +1,239 @@
+<Sysmon schemaversion="4.90">
+
+  <!-- ========================================================= -->
+  <!-- 🔥 USE CASE INDEX (ALL INCLUDED IN THIS CONFIG) -->
+  <!-- ========================================================= -->
+  <!-- 1. Suspicious PowerShell Execution -->
+  <!-- 2. Suspicious Archive File Extraction -->
+  <!-- 3. Unauthorized Configuration Change -->
+  <!-- 4. Anomalous File Deletion -->
+  <!-- 5. Privilege Escalation Attempt (PsExec) -->
+  <!-- 6. Credential Dumping & Credential Harvesting -->
+  <!-- 7. LSASS Access Detection -->
+  <!-- 8. Application Installation Monitoring -->
+  <!-- 9. New Service Installation Detection -->
+  <!-- 10. Scheduled Task Persistence -->
+  <!-- 11. Unusual Parent-Child Process Relationship -->
+  <!-- ========================================================= -->
+
+  <!-- ========================================= -->
+  <!-- GLOBAL SETTINGS -->
+  <!-- ========================================= -->
+  <HashAlgorithms>md5,sha256</HashAlgorithms>
+  <ArchiveDirectory>SysmonArchive</ArchiveDirectory>
+
+  <EventFiltering>
+
+    <!-- ========================================================= -->
+    <!-- USE CASE: Suspicious PowerShell Execution -->
+    <!-- ========================================================= -->
+    <RuleGroup name="Suspicious_PowerShell" groupRelation="or">
+      <ProcessCreate onmatch="include">
+        <Image condition="contains">powershell.exe</Image>
+        <Image condition="contains">pwsh.exe</Image>
+        <Image condition="contains">powershell_ise.exe</Image>
+      </ProcessCreate>
+    </RuleGroup>
+
+    <!-- ========================================================= -->
+    <!-- USE CASE: Archive Extraction Detection -->
+    <!-- ========================================================= -->
+    <RuleGroup name="Archive_Tools" groupRelation="or">
+      <ProcessCreate onmatch="include">
+        <Image condition="end with">7z.exe</Image>
+        <Image condition="end with">winrar.exe</Image>
+        <Image condition="end with">winzip.exe</Image>
+        <Image condition="end with">expand.exe</Image>
+        <Image condition="end with">tar.exe</Image>
+      </ProcessCreate>
+
+      <ProcessCreate onmatch="include">
+        <Image condition="end with">powershell.exe</Image>
+        <CommandLine condition="contains">Expand-Archive</CommandLine>
+      </ProcessCreate>
+    </RuleGroup>
+
+    <RuleGroup name="Archive_File_Drop" groupRelation="or">
+      <FileCreate onmatch="include">
+        <TargetFilename condition="contains">\Windows\Temp\</TargetFilename>
+        <TargetFilename condition="end with">.exe</TargetFilename>
+      </FileCreate>
+
+      <FileCreate onmatch="include">
+        <TargetFilename condition="contains">\AppData\Local\Temp\</TargetFilename>
+        <TargetFilename condition="end with">.exe</TargetFilename>
+      </FileCreate>
+    </RuleGroup>
+
+    <!-- ========================================================= -->
+    <!-- USE CASE: Unauthorized Configuration Change -->
+    <!-- ========================================================= -->
+    <RuleGroup name="Registry_Modification" groupRelation="or">
+      <RegistryEvent onmatch="include">
+        <TargetObject condition="contains">CurrentVersion\Run</TargetObject>
+        <TargetObject condition="contains">Services\Wazuh</TargetObject>
+        <TargetObject condition="contains">Microsoft\Windows Defender</TargetObject>
+        <TargetObject condition="contains">System\CurrentControlSet\Control\Lsa</TargetObject>
+      </RegistryEvent>
+    </RuleGroup>
+
+    <RuleGroup name="Config_Tools" groupRelation="or">
+      <ProcessCreate onmatch="include">
+        <Image condition="begin with">C:\Windows\System32\reg.exe</Image>
+        <Image condition="begin with">C:\Windows\System32\net.exe</Image>
+        <Image condition="begin with">C:\Windows\System32\sc.exe</Image>
+      </ProcessCreate>
+    </RuleGroup>
+
+    <!-- ========================================================= -->
+    <!-- USE CASE: Anomalous File Deletion -->
+    <!-- ========================================================= -->
+    <RuleGroup name="File_Deletion" groupRelation="or">
+      <FileDelete onmatch="include">
+        <TargetFilename condition="contains">C:\Sensitive\Data</TargetFilename>
+        <TargetFilename condition="contains">C:\Users\</TargetFilename>
+        <TargetFilename condition="contains">C:\Data</TargetFilename>
+      </FileDelete>
+    </RuleGroup>
+
+    <!-- ========================================================= -->
+    <!-- USE CASE: Privilege Escalation Attempt -->
+    <!-- ========================================================= -->
+    <RuleGroup name="Privilege_Escalation_PsExec" groupRelation="or">
+      <ProcessCreate onmatch="include">
+        <ParentImage condition="image">PSEXESVC.exe</ParentImage>
+        <Image condition="image">powershell.exe</Image>
+        <Image condition="image">cmd.exe</Image>
+      </ProcessCreate>
+
+      <RegistryEvent onmatch="include">
+        <TargetObject condition="contains">Services\PSEXESVC</TargetObject>
+      </RegistryEvent>
+    </RuleGroup>
+
+    <!-- ========================================================= -->
+    <!-- USE CASE: Credential Dumping & Credential Harvesting -->
+    <!-- ========================================================= -->
+    <RuleGroup name="Credential_Harvesting" groupRelation="or">
+
+      <!-- Mimikatz + Credential Commands -->
+      <ProcessCreate onmatch="include">
+        <Image condition="contains">mimikatz</Image>
+
+        <CommandLine condition="contains">mimikatz</CommandLine>
+        <CommandLine condition="contains">sekurlsa</CommandLine>
+        <CommandLine condition="contains">logonpasswords</CommandLine>
+        <CommandLine condition="contains">lsadump</CommandLine>
+        <CommandLine condition="contains">wdigest</CommandLine>
+        <CommandLine condition="contains">kerberos</CommandLine>
+        <CommandLine condition="contains">privilege::debug</CommandLine>
+      </ProcessCreate>
+
+      <!-- Dump tools -->
+      <ProcessCreate onmatch="include">
+        <Image condition="contains">procdump</Image>
+        <Image condition="contains">taskmgr</Image>
+        <CommandLine condition="contains">lsass</CommandLine>
+      </ProcessCreate>
+
+    </RuleGroup>
+
+    <!-- LSASS Access Detection -->
+    <ProcessAccess onmatch="include">
+      <TargetImage condition="is">C:\Windows\System32\lsass.exe</TargetImage>
+    </ProcessAccess>
+
+    <ProcessAccess onmatch="exclude">
+      <SourceImage condition="is">C:\Windows\system32\svchost.exe</SourceImage>
+      <SourceImage condition="is">C:\Windows\system32\wininit.exe</SourceImage>
+      <SourceImage condition="is">C:\Windows\System32\csrss.exe</SourceImage>
+      <SourceImage condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</SourceImage>
+      <SourceImage condition="begin with">C:\Program Files\VMware\</SourceImage>
+    </ProcessAccess>
+
+    <!-- Dump File Creation -->
+    <FileCreate onmatch="include">
+      <TargetFilename condition="end with">.dmp</TargetFilename>
+      <TargetFilename condition="end with">.mdmp</TargetFilename>
+    </FileCreate>
+
+    <!-- ========================================================= -->
+    <!-- USE CASE: Application Installation -->
+    <!-- ========================================================= -->
+    <RuleGroup name="Application_Install" groupRelation="or">
+      <ProcessCreate onmatch="include">
+        <Image condition="contains">msiexec.exe</Image>
+        <Image condition="contains">setup.exe</Image>
+        <Image condition="contains">install.exe</Image>
+      </ProcessCreate>
+
+      <FileCreate onmatch="include">
+        <TargetFilename condition="contains">Program Files</TargetFilename>
+      </FileCreate>
+
+      <RegistryEvent onmatch="include">
+        <TargetObject condition="contains">CurrentVersion\Uninstall</TargetObject>
+      </RegistryEvent>
+    </RuleGroup>
+
+    <!-- ========================================================= -->
+    <!-- USE CASE: New Service Installation -->
+    <!-- ========================================================= -->
+    <RuleGroup name="Service_Install" groupRelation="or">
+      <RegistryEvent onmatch="include">
+        <TargetObject condition="contains">HKLM\System\CurrentControlSet\Services</TargetObject>
+      </RegistryEvent>
+    </RuleGroup>
+
+    <!-- ========================================================= -->
+    <!-- USE CASE: Scheduled Task Persistence -->
+    <!-- ========================================================= -->
+    <RuleGroup name="Scheduled_Task" groupRelation="or">
+      <ProcessCreate onmatch="include">
+        <OriginalFileName condition="is">schtasks.exe</OriginalFileName>
+        <CommandLine condition="contains">/create</CommandLine>
+      </ProcessCreate>
+
+      <RegistryEvent onmatch="include">
+        <TargetObject condition="begin with">HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree</TargetObject>
+      </RegistryEvent>
+    </RuleGroup>
+
+    <!-- ========================================================= -->
+    <!-- USE CASE: Parent-Child Process Anomaly -->
+    <!-- ========================================================= -->
+    <RuleGroup name="Process_Anomaly" groupRelation="or">
+
+      <!-- Suspicious Parents -->
+      <ProcessCreate onmatch="include">
+        <ParentImage condition="end with">winword.exe</ParentImage>
+        <ParentImage condition="end with">excel.exe</ParentImage>
+        <ParentImage condition="end with">outlook.exe</ParentImage>
+        <ParentImage condition="end with">chrome.exe</ParentImage>
+        <ParentImage condition="end with">msedge.exe</ParentImage>
+        <ParentImage condition="end with">explorer.exe</ParentImage>
+      </ProcessCreate>
+
+      <!-- Suspicious Children -->
+      <ProcessCreate onmatch="include">
+        <Image condition="end with">cmd.exe</Image>
+        <Image condition="end with">powershell.exe</Image>
+        <Image condition="end with">pwsh.exe</Image>
+        <Image condition="end with">wscript.exe</Image>
+        <Image condition="end with">cscript.exe</Image>
+        <Image condition="end with">mshta.exe</Image>
+        <Image condition="end with">rundll32.exe</Image>
+        <Image condition="end with">regsvr32.exe</Image>
+        <Image condition="end with">wmic.exe</Image>
+      </ProcessCreate>
+
+      <!-- Noise Reduction -->
+      <ProcessCreate onmatch="exclude">
+        <ParentImage condition="end with">explorer.exe</ParentImage>
+        <Image condition="end with">notepad.exe</Image>
+      </ProcessCreate>
+
+    </RuleGroup>
+
+  </EventFiltering>
+</Sysmon>
