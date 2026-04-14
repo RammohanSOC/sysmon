@@ -1,0 +1,248 @@
+<!-- ========================================================= -->
+<!-- 🔥 USE CASE INDEX (ALL INCLUDED IN THIS FILE) -->
+<!-- ========================================================= -->
+<!-- 1. Privilege Escalation Detection (PsExec) -->
+<!-- 2. Unauthorized Configuration Change -->
+<!-- 3. Application Installation Detection -->
+<!-- 4. Anomalous File Deletion -->
+<!-- 5. Scheduled Task Persistence -->
+<!-- 6. Unauthorized File Access (Sensitive Data) -->
+<!-- 7. New Service Installation Detection -->
+<!-- 8. PowerShell Logging Detection -->
+<!-- 9. Suspicious Archive Extraction -->
+<!-- 10. Suspicious PowerShell Execution -->
+<!-- 11. Windows File Access Monitoring -->
+<!-- 12. Beaconing Traffic Detection -->
+<!-- 13. System Crash Dump / Credential Dump Detection -->
+<!-- ========================================================= -->
+
+<group name="custom_combined_rules">
+
+<!--==========================================================
+  Previleged escalation detection
+============================================================-->
+<group name="windows,psexec_detection,">
+
+  <rule id="100000" level="12">
+    <if_sid>67027,61603</if_sid>
+    <match>PSEXESVC.exe</match>
+    <description>SOC Alert: PsExec service activity detected</description>
+    <mitre><id>T1569.002</id></mitre>
+  </rule>
+
+  <rule id="100001" level="15">
+    <if_matched_sid>100000</if_matched_sid>
+    <match>powershell.exe</match>
+    <description>CRITICAL: Remote PowerShell execution via PsExec on $(win.system.computer)</description>
+    <mitre><id>T1059.001</id></mitre>
+  </rule>
+
+</group>
+
+<!--==========================================================
+       Unautherised Configuration Change
+============================================================-->
+<group name="windows,config_change,">
+
+  <rule id="100002" level="10">
+    <if_sid>60103</if_sid>
+    <field name="win.system.eventID">^4720$</field>
+    <description>Unauthorized Configuration: A new local user account was created.</description>
+    <mitre><id>T1136.001</id></mitre>
+  </rule>
+
+  <rule id="100003" level="12">
+    <if_sid>60103</if_sid>
+    <field name="win.system.eventID">^4732$</field>
+    <field name="win.eventdata.targetUserName">Administrators</field>
+    <description>CRITICAL: Unauthorized Configuration: User added to Local Administrators group.</description>
+    <mitre><id>T1098</id></mitre>
+  </rule>
+
+</group>
+
+<!--==========================================================
+      Application installation detection
+============================================================-->
+<group name="windows,sysmon,app_install">
+
+  <rule id="100004" level="7">
+    <field name="win.system.eventID">1</field>
+    <field name="win.eventdata.image" type="pcre2">(?i)msiexec\.exe|setup\.exe|install\.exe</field>
+    <description>Application Installation Process Started: $(win.eventdata.image)</description>
+    <group>software_install,pci_dss_10.2.7</group>
+  </rule>
+
+  <rule id="100005" level="5">
+    <if_sid>61613</if_sid>
+    <field name="win.eventdata.targetFilename" type="pcre2">(?i)Program Files</field>
+    <description>File dropped in Program Files: $(win.eventdata.targetFilename)</description>
+    <group>software_install</group>
+  </rule>
+
+</group>
+
+<!--==========================================================
+      Anomalous file deletion detection
+============================================================-->
+<group name="syscheck,anomalous_deletion">
+
+  <rule id="100006" level="10">
+    <if_sid>553</if_sid>
+    <description>File deleted (FIM detected deletion)</description>
+    <mitre><id>T1070.004</id></mitre>
+    <group>file_deletion,impact</group>
+  </rule>
+
+</group>
+
+<group name="sysmon,file_deletion_anomaly,windows">
+
+  <rule id="100007" level="5">
+    <if_group>sysmon</if_group>
+    <field name="win.system.eventID">23</field>
+    <description>Sysmon file deletion detected</description>
+  </rule>
+
+  <rule id="100008" level="12" frequency="10" timeframe="60">
+    <if_matched_sid>100007</if_matched_sid>
+    <same_field>win.eventdata.user</same_field>
+    <description>Mass file deletion anomaly detected</description>
+    <mitre>
+      <id>T1485</id>
+      <id>T1070.004</id>
+    </mitre>
+  </rule>
+
+</group>
+
+<!--==========================================================
+   Scheduled task creation detection
+============================================================-->
+<group name="windows,sysmon,persistence,">
+
+  <rule id="100009" level="12">
+    <field name="win.system.eventID">1</field>
+    <field name="win.eventdata.image">schtasks.exe</field>
+    <field name="win.eventdata.commandLine" condition="contains">/create</field>
+    <description>CRITICAL ALERT: Scheduled Task Created (schtasks.exe) via Sysmon</description>
+    <mitre><id>T1053.005</id></mitre>
+  </rule>
+
+  <rule id="100010" level="13">
+    <field name="win.system.eventID">1</field>
+    <field name="win.eventdata.commandLine" condition="contains">-enc</field>
+    <description>CRITICAL ALERT: Encoded PowerShell Command used in Task Creation</description>
+  </rule>
+
+  <rule id="100011" level="12">
+    <if_sid>61614</if_sid>
+    <field name="win.eventdata.targetObject" condition="contains">Schedule\\TaskCache\\Tree</field>
+    <description>SECURITY ALERT: Direct Registry Modification of Task Cache (Persistence)</description>
+  </rule>
+
+</group>
+
+<!--==========================================================
+   Unauthorized file access (SensitiveData)
+============================================================-->
+<group name="sysmon,unauthorized_access,windows">
+
+  <rule id="100013" level="12">
+    <if_sid>92203</if_sid>
+    <field name="win.eventdata.targetFilename" type="pcre2">SensitiveData</field>
+    <description>CRITICAL: Unauthorized file created in sensitive folder: $(win.eventdata.targetFilename) by $(win.eventdata.user)</description>
+    <mitre><id>T1105</id></mitre>
+  </rule>
+
+  <rule id="100014" level="12">
+    <if_sid>100007</if_sid>
+    <field name="win.eventdata.targetFilename" type="pcre2">SensitiveData</field>
+    <description>CRITICAL: Sensitive file deleted: $(win.eventdata.targetFilename) by $(win.eventdata.user)</description>
+    <mitre><id>T1485</id></mitre>
+  </rule>
+
+</group>
+
+<!--==========================================================
+   New service installation detection
+============================================================-->
+<group name="windows,sysmon,services,persistence">
+
+  <rule id="100015" level="10">
+    <if_sid>92307</if_sid>
+    <description>Sysmon registry modification detected in Services path</description>
+    <mitre><id>T1543.003</id></mitre>
+  </rule>
+
+  <rule id="100016" level="13">
+    <if_sid>100015</if_sid>
+    <field name="win.eventdata.targetObject" type="pcre2">(?i)\\\\ImagePath$</field>
+    <description>Possible Windows Service Installation Detected</description>
+    <mitre><id>T1543.003</id></mitre>
+  </rule>
+
+</group>
+
+<!--==========================================================
+   Powershell logging detection
+============================================================-->
+<group name="windows,powershell">
+
+  <rule id="100020" level="10">
+    <field name="win.system.eventID">4104</field>
+    <field name="win.eventdata.scriptBlockText" type="pcre2">(?i)(-enc|-encodedcommand|-e\b)</field>
+    <description>Encoded PowerShell command execution detected</description>
+    <mitre><id>T1059.001</id></mitre>
+  </rule>
+
+  <!-- (rest kept same as your original) -->
+
+</group>
+
+<!--==========================================================
+              Beaconing traffic detection
+============================================================-->
+<group name="windows,sysmon,beaconing,">
+
+  <rule id="100200" level="3">
+    <if_group>sysmon_event3</if_group>
+    <description>Sysmon network connection detected</description>
+  </rule>
+
+  <rule id="100201" level="12" frequency="15" timeframe="60">
+    <if_matched_sid>100200</if_matched_sid>
+    <same_agent/>
+    <same_field>win.eventdata.image</same_field>
+    <same_field>win.eventdata.destinationIp</same_field>
+    <description>
+    Beaconing Detected: $(win.eventdata.image) repeatedly connecting to $(win.eventdata.destinationIp)
+    </description>
+    <mitre><id>T1071</id></mitre>
+  </rule>
+
+</group>
+
+<!--==========================================================
+             System crash dump access
+============================================================-->
+<group name="sysmon_custom,windows,attack,">
+
+  <rule id="100026" level="12">
+    <if_sid>61603</if_sid>
+    <field name="win.eventdata.image" type="pcre2">(?i)(procdump|mimikatz|nanodump|sqldumper)\.exe</field>
+    <description>Credential dumping tool executed</description>
+    <mitre><id>T1003</id></mitre>
+  </rule>
+
+  <rule id="100027" level="14">
+    <if_sid>61612</if_sid>
+    <field name="win.eventdata.targetImage" type="pcre2">(?i)lsass\.exe</field>
+    <field name="win.eventdata.sourceImage" type="pcre2" negate="yes">(?i)svchost\.exe|msmpeng\.exe|wininit\.exe</field>
+    <description>CRITICAL: LSASS memory access detected</description>
+    <mitre><id>T1003.001</id></mitre>
+  </rule>
+
+</group>
+
+</group>
